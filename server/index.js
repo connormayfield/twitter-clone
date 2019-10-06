@@ -1,11 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const monk = require("monk");
+const Filter = require("bad-words");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 
 const db = monk("localhost/meower");
 const mews = db.get("mews");
+filter = new Filter();
 
 app.use(cors());
 app.use(express.json());
@@ -35,10 +38,17 @@ function isValidMew(mew) {
   );
 }
 
+app.use(
+  rateLimit({
+    windowMs: 30 * 1000,
+    max: 1
+  })
+);
+
 app.post("/mews", (req, res) => {
   if (isValidMew(req.body)) {
     const mew = {
-      name: req.body.name.toString(),
+      name: filter.clean(req.body.name.toString()),
       content: req.body.content.toString(),
       created: new Date()
     };
